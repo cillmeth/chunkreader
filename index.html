@@ -198,18 +198,28 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
         </div>
         <div>
           <label for="model">Geminiモデル</label>
-          <input id="model" list="modelSuggestions" value="gemini-3.6-flash" placeholder="gemini-3.6-flash">
-          <datalist id="modelSuggestions">
-            <option value="gemini-3.6-flash"></option>
-            <option value="gemini-3.5-flash"></option>
-            <option value="gemini-3.5-flash-lite"></option>
-            <option value="gemini-3.1-pro-preview"></option>
-          </datalist>
+          <select id="model">
+            <option value="gemini-2.5-flash" selected>gemini-2.5-flash（標準・高速）</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro（高精度）</option>
+            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+            <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+            <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
+            <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+            <option value="custom">カスタムモデル名を入力...</option>
+          </select>
         </div>
+      </div>
+      <div id="customModelBox" style="display:none">
+        <label for="customModel">カスタムモデルID</label>
+        <input id="customModel" type="text" placeholder="例: gemini-2.5-flash">
       </div>
       <div id="runtimeBox">
         <label for="apiKey">Gemini APIキー</label>
-        <input id="apiKey" type="password" autocomplete="off" placeholder="AIza...">
+        <div class="row">
+          <input id="apiKey" class="grow" type="password" autocomplete="off" placeholder="AIza...">
+          <button type="button" id="testApi" class="btn sm ghost" style="white-space:nowrap">接続テスト</button>
+        </div>
+        <div id="testResult" class="sub" style="margin-top:6px;display:none"></div>
         <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px;color:var(--muted);margin-top:8px;cursor:pointer">
           <input type="checkbox" id="saveKey" style="width:auto;margin:0" checked>
           この端末（ブラウザ）にAPIキーを保存する
@@ -220,7 +230,7 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
         <input id="proxyUrl" type="url" placeholder="https://your-worker.example.com/quiz">
         <p class="sub">POST本文: <code>{ passage, model, prompt }</code>。レスポンス: <code>{ questions:[...] }</code></p>
       </div>
-      <p class="note" style="margin-top:12px">※初期値は <code>gemini-3.6-flash</code> に設定しており、候補から <code>gemini-3.5-flash</code> や <code>gemini-3.5-flash-lite</code>、<code>gemini-3.1-pro-preview</code> も選択・入力できます。バックグラウンド復帰時の接続切れを防ぐ自動リトライも搭載しています。</p>
+      <p class="note" style="margin-top:12px">※選択したモデルがAPI側で未対応（404等）の場合は、自動的に利用可能な最新Flashモデルへフォールバックして問題を作成します。</p>
     </div>
 
     <div class="start-wrap">
@@ -305,6 +315,19 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
 
 <script>
 'use strict';
+
+window.addEventListener('error', function(ev) {
+  try {
+    var setupEl = document.getElementById('setup');
+    if (setupEl) setupEl.classList.add('on');
+    var t = document.getElementById('toast');
+    if (t) {
+      t.textContent = '表示エラー: ' + (ev && ev.message ? ev.message : 'スクリプトエラー');
+      t.classList.add('on');
+    }
+  } catch (e) {}
+});
+
 var $ = function(s) { return document.querySelector(s); };
 var $$ = function(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
 
@@ -442,13 +465,25 @@ function currentText() {
   return $('#passage').value.trim();
 }
 
+function getSelectedModel() {
+  const sel = $('#model').value;
+  if (sel === 'custom') {
+    return ($('#customModel').value.trim() || 'gemini-2.5-flash');
+  }
+  return sel || 'gemini-2.5-flash';
+}
+
+function sanitizeApiKey(raw) {
+  return String(raw || '').replace(/[^\x21-\x7E]/g, '').trim();
+}
+
 function start() {
   if (!$('#setup').classList.contains('on') && !$('#result').classList.contains('on')) return;
   if (countWords(currentText()) < 12) {
     toast('12語以上の英文を入力してください');
     return;
   }
-  if ($('#apiMode').value === 'runtime' && !$('#apiKey').value.trim()) {
+  if ($('#apiMode').value === 'runtime' && !sanitizeApiKey($('#apiKey').value)) {
     toast('先にGemini APIキーを入力してください');
     $('#apiKey').focus();
     return;
@@ -492,25 +527,25 @@ async function advance() {
 
 const prompt = `あなたは英語読解評価の専門家です。英文の理解を確認する日本語4択問題を3問作成してください。\n要件: (1) 穴埋め、語句一致、本文中の数値だけを選ばせる問題は禁止。(2) 主旨、因果・目的、対比・条件、重要な事実の理解を優先。(3) 3問は異なる観点。(4) 誤答は本文の要素を自然に取り違えたものにし、明らかに荒唐無稽な選択肢を避ける。(5) questionと4 choicesは日本語。(6) explanationには根拠となる英文を引用し、理由を日本語で説明。(7) answerIndexは0始まり。JSON配列のみ。`;
 
+function fetchWithTimeout(url, options, timeoutMs = 45000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('通信が45秒でタイムアウトしました（電波状況を確認してください）'));
+    }, timeoutMs);
+    fetch(url, options).then(
+      res => { clearTimeout(timer); resolve(res); },
+      err => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
 async function fetchWithRetry(url, options, maxRetries = 2) {
   let lastErr;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
     try {
-      const res = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        cache: 'no-store'
-      });
-      clearTimeout(timeoutId);
-      return res;
+      return await fetchWithTimeout(url, options, 45000);
     } catch (e) {
-      clearTimeout(timeoutId);
       lastErr = e;
-      if (e.name === 'AbortError') {
-        lastErr = Error('通信が45秒でタイムアウトしました（電波状況を確認してください）');
-      }
       if (attempt < maxRetries) {
         await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
       }
@@ -519,23 +554,7 @@ async function fetchWithRetry(url, options, maxRetries = 2) {
   throw lastErr;
 }
 
-async function geminiQuiz(t) {
-  const mode = $('#apiMode').value,
-    model = ($('#model').value.trim() || 'gemini-3.6-flash');
-  if (mode === 'proxy') {
-    const u = $('#proxyUrl').value.trim();
-    if (!u) throw Error('プロキシURLを入力してください');
-    const r = await fetchWithRetry(u, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passage: t, model, prompt })
-    });
-    if (!r.ok) throw Error('プロキシ通信エラー HTTP ' + r.status);
-    const d = await r.json();
-    return validateQuestions(d.questions || d);
-  }
-  const key = $('#apiKey').value.trim();
-  if (!key) throw Error('Gemini APIキーが未入力です。設定画面で入力してください。');
+async function callGeminiEndpoint(model, key, t) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const schema = {
     type: 'ARRAY',
@@ -564,16 +583,63 @@ async function geminiQuiz(t) {
       }
     })
   });
-  if (!r.ok) {
-    let d = {};
-    try { d = await r.json(); } catch {}
-    const apiMsg = (d && d.error && d.error.message) ? d.error.message : `HTTP ${r.status}`;
-    throw Error(`Gemini APIエラー: ${apiMsg}`);
+  return r;
+}
+
+async function geminiQuiz(t) {
+  const mode = $('#apiMode').value;
+  const chosenModel = getSelectedModel();
+  if (mode === 'proxy') {
+    const u = $('#proxyUrl').value.trim();
+    if (!u) throw Error('プロキシURLを入力してください');
+    const r = await fetchWithRetry(u, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passage: t, model: chosenModel, prompt })
+    });
+    if (!r.ok) throw Error('プロキシ通信エラー HTTP ' + r.status);
+    const d = await r.json();
+    return validateQuestions(d.questions || d);
   }
-  const d = await r.json();
-  const raw = (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text);
-  if (!raw) throw Error('Geminiの応答が空でした');
-  return validateQuestions(JSON.parse(raw));
+  const key = sanitizeApiKey($('#apiKey').value);
+  if (!key) throw Error('Gemini APIキーが未入力です。設定画面で入力してください。');
+
+  const candidates = [chosenModel];
+  ['gemini-2.5-flash', 'gemini-2.0-flash'].forEach(fb => {
+    if (!candidates.includes(fb)) candidates.push(fb);
+  });
+
+  let lastErr = null;
+  for (let i = 0; i < candidates.length; i++) {
+    const m = candidates[i];
+    try {
+      const r = await callGeminiEndpoint(m, key, t);
+      if (!r.ok) {
+        let d = {};
+        try { d = await r.json(); } catch {}
+        const apiMsg = (d && d.error && d.error.message) ? d.error.message : `HTTP ${r.status}`;
+        if ((r.status === 404 || r.status === 400) && i < candidates.length - 1) {
+          lastErr = Error(`Gemini APIエラー (${m}): ${apiMsg}`);
+          continue;
+        }
+        throw Error(`Gemini APIエラー (${m}): ${apiMsg}`);
+      }
+      const d = await r.json();
+      const raw = (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text);
+      if (!raw) throw Error('Geminiの応答が空でした');
+      if (m !== chosenModel) {
+        toast(`モデル ${chosenModel} が未対応のため ${m} で作成しました`);
+      }
+      return validateQuestions(JSON.parse(raw));
+    } catch (e) {
+      lastErr = e;
+      if (i < candidates.length - 1 && /404|not found|not supported/i.test(String(e.message))) {
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr || Error('Gemini APIへの接続に失敗しました');
 }
 
 function validateQuestions(x) {
@@ -611,18 +677,22 @@ async function prepareQuiz() {
     renderQ();
   } catch (e) {
     const msg = e.message || 'API接続エラー';
+    const isNetwork = /Load failed|Failed to fetch|NetworkError|タイムアウト/i.test(msg);
     $('#qText').textContent = '問題の作成に失敗しました';
     errBox.innerHTML = `
       <b>エラー詳細:</b> ${esc(msg)}<br>
-      <span style="font-size:12px">・APIキーやモデル名（例: <code>gemini-3.6-flash</code>）が正しいか確認してください。<br>
-      ・iPhoneのVPNやコンテンツブロッカー、機内モード等が通信を遮断していないか確認してください。</span>
+      <span style="font-size:12px">${isNetwork
+        ? '・iPhoneのSafariで通信が遮断された可能性があります（コンテンツブロッカー、VPN、プライベートリレー、機内モード、またはAPIキーの前後スペース・全角文字を確認してください）。<br>・下の「クイズをスキップ」から今回の読書スピード記録だけ保存することもできます。'
+        : '・APIキーや選択したモデルが有効か確認してください。'}</span>
       <div class="row mobile" style="margin-top:12px">
         <button type="button" id="retryQuiz" class="btn primary grow">再試行する</button>
+        <button type="button" id="skipFromErr" class="btn ghost grow">クイズをスキップして結果へ</button>
         <button type="button" id="backToSetup" class="btn grow">設定画面に戻る</button>
       </div>
     `;
     errBox.style.display = 'block';
     $('#retryQuiz').onclick = () => prepareQuiz();
+    $('#skipFromErr').onclick = () => skipQuiz();
     $('#backToSetup').onclick = () => show('#setup');
   }
 }
@@ -750,10 +820,64 @@ async function fetchNews() {
 }
 
 function syncKeyStorage() {
+  const cleaned = sanitizeApiKey($('#apiKey').value);
+  if ($('#apiKey').value !== cleaned) {
+    $('#apiKey').value = cleaned;
+  }
   if ($('#saveKey').checked) {
-    localStorage.setItem('chunkreader_apikey', $('#apiKey').value.trim());
+    localStorage.setItem('chunkreader_apikey', cleaned);
   } else {
     localStorage.removeItem('chunkreader_apikey');
+  }
+}
+
+function syncModelStorage() {
+  const sel = $('#model').value;
+  $('#customModelBox').style.display = sel === 'custom' ? 'block' : 'none';
+  localStorage.setItem('chunkreader_model_select', sel);
+  if (sel === 'custom') {
+    localStorage.setItem('chunkreader_model_custom', $('#customModel').value.trim());
+  }
+}
+
+async function testApiConnection() {
+  const key = sanitizeApiKey($('#apiKey').value);
+  const out = $('#testResult');
+  out.style.display = 'block';
+  if (!key) {
+    out.style.color = 'var(--bad)';
+    out.textContent = '先にGemini APIキーを入力してください。';
+    return;
+  }
+  $('#testApi').disabled = true;
+  out.style.color = 'var(--muted)';
+  out.textContent = 'Gemini APIへ接続テスト中...';
+  try {
+    const model = getSelectedModel();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+    const r = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: 'Reply with OK' }] }],
+        generationConfig: { maxOutputTokens: 8 }
+      })
+    }, 15000);
+    if (!r.ok) {
+      let d = {};
+      try { d = await r.json(); } catch {}
+      const msg = (d && d.error && d.error.message) ? d.error.message : `HTTP ${r.status}`;
+      out.style.color = 'var(--bad)';
+      out.textContent = `接続エラー (${model}): ${msg}`;
+    } else {
+      out.style.color = 'var(--ok)';
+      out.textContent = `接続成功！(${model} で問題生成が可能です)`;
+    }
+  } catch (e) {
+    out.style.color = 'var(--bad)';
+    out.textContent = `通信エラー: ${e.message || 'Load failed'}（VPN・コンテンツブロッカー・通信環境を確認してください）`;
+  } finally {
+    $('#testApi').disabled = false;
   }
 }
 
@@ -803,9 +927,9 @@ $('#apiMode').onchange = e => {
 };
 $('#apiKey').addEventListener('input', syncKeyStorage);
 $('#saveKey').addEventListener('change', syncKeyStorage);
-$('#model').addEventListener('input', () => {
-  localStorage.setItem('chunkreader_model', $('#model').value.trim());
-});
+$('#testApi').onclick = testApiConnection;
+$('#model').addEventListener('change', syncModelStorage);
+$('#customModel').addEventListener('input', syncModelStorage);
 $('#newsLevel').onchange = e => $('#openNews').href = `https://www.newsinlevels.com/level/level-${e.target.value}/`;
 $('#fetchNews').onclick = fetchNews;
 $('#useNewsPaste').onclick = () => {
@@ -829,9 +953,14 @@ document.addEventListener('keydown', e => {
 // 初期化
 try {
   const savedKey = localStorage.getItem('chunkreader_apikey');
-  if (savedKey) $('#apiKey').value = savedKey;
-  const savedModel = localStorage.getItem('chunkreader_model');
-  if (savedModel) $('#model').value = savedModel;
+  if (savedKey) $('#apiKey').value = sanitizeApiKey(savedKey);
+  const savedSel = localStorage.getItem('chunkreader_model_select');
+  const savedCustom = localStorage.getItem('chunkreader_model_custom');
+  if (savedCustom) $('#customModel').value = savedCustom;
+  if (savedSel && [...$('#model').options].some(o => o.value === savedSel)) {
+    $('#model').value = savedSel;
+    $('#customModelBox').style.display = savedSel === 'custom' ? 'block' : 'none';
+  }
 } catch {}
 
 $('#passage').value = sampleText;
