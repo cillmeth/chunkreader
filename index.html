@@ -39,7 +39,8 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
 .row{display:flex;gap:9px;align-items:center}
 .row>*{min-width:0}
 .grow{flex:1}
-.btn{border:0;border-radius:13px;padding:12px 15px;font-weight:800;background:#e2e8f0;color:#334155}
+.btn{border:0;border-radius:13px;padding:12px 15px;font-weight:800;background:#e2e8f0;color:#334155;transition:background .15s,opacity .15s}
+.btn:active{opacity:.82}
 .btn.primary{background:var(--pri);color:white}
 .btn.primary:hover{background:var(--pri2)}
 .btn.ghost{background:#eef2ff;color:var(--pri)}
@@ -57,8 +58,12 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
 .boundary.cut{background:#e0e7ff;color:#4338ca}
 .boundary.join{background:transparent;color:#cbd5e1}
 .cfg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.status{font-size:12px;font-weight:800;padding:5px 9px;border-radius:999px;background:#f1f5f9;color:#475569}
+.status{font-size:12px;font-weight:800;padding:5px 9px;border-radius:999px;background:#f1f5f9;color:#475569;white-space:nowrap}
 .status.ok{background:#ecfdf5;color:#047857}
+.status.off{background:#f1f5f9;color:#64748b}
+.quiz-toggle-bar{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#f1f5f9;padding:4px;border-radius:12px;margin:10px 0 4px}
+.quiz-toggle-bar button{border:0;border-radius:9px;padding:9px 10px;font-size:13px;font-weight:800;background:transparent;color:#475569}
+.quiz-toggle-bar button.on{background:white;color:var(--pri);box-shadow:0 1px 4px #0001}
 .reader{min-height:calc(100vh - 140px);display:flex;flex-direction:column}
 .progress{height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden}
 .progress div{height:100%;background:var(--pri);transition:.18s}
@@ -77,22 +82,34 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
 .feedback{margin-top:12px;padding:13px;border-radius:13px;background:#f1f5f9;line-height:1.6;font-size:13px}
 .api-error-box{margin-bottom:12px;padding:13px;border-radius:14px;font-size:13px;line-height:1.6;background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;word-break:break-word}
 .big{font-size:56px;font-weight:900;color:var(--pri);line-height:1}
-.resultgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:16px 0}
+.resultgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0}
 .tile{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
-.tile small{display:block;color:var(--muted)}
+.tile small{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}
 .tile b{font-size:17px}
+.period-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;background:#eef2ff;padding:4px;border-radius:12px;margin:10px 0 4px}
+.period-tabs button{border:0;border-radius:9px;padding:8px 6px;font-size:12px;font-weight:800;background:transparent;color:#475569}
+.period-tabs button.on{background:white;color:var(--pri);box-shadow:0 1px 4px #0001}
+.breakdown-box{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.breakdown-title{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.breakdown-list{display:grid;gap:7px}
+.b-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:13px}
+.b-row-left{min-width:0;flex:1}
+.b-bar-wrap{height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:5px}
+.b-bar{height:100%;background:var(--pri);border-radius:99px}
+.b-wpm{font-weight:900;color:var(--pri);white-space:nowrap}
 .history{display:grid;gap:8px}
 .hist{border:1px solid var(--line);border-radius:13px;padding:11px;display:flex;justify-content:space-between;gap:10px}
 .hist small{color:var(--muted)}
-.empty{text-align:center;color:var(--muted);padding:28px 0}
+.empty{text-align:center;color:var(--muted);padding:24px 0;font-size:13px}
+.confirm-bar{margin-top:10px;padding:12px;border-radius:12px;background:#fff1f2;border:1px solid #fecdd3;display:none}
+.confirm-bar.on{display:block}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:50;width:min(92%,600px);padding:12px 15px;border-radius:14px;background:#0f172a;color:white;box-shadow:0 10px 30px #0004;font-size:13px;display:none}
 .toast.on{display:block}
 .spinner{display:inline-block;width:16px;height:16px;border:2.5px solid #c7d2fe;border-top-color:var(--pri);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:520px){
-  .headin{align-items:center}
+  .headin{align-items:center;padding:0 10px}
   .brand small{display:none}
-  .headin{padding:0 10px}
   .tabs button{padding:8px}
   .cfg{grid-template-columns:1fr}
   .row.mobile{flex-direction:column;align-items:stretch}
@@ -184,53 +201,66 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
       <div class="row" style="justify-content:space-between">
         <div>
           <h3>理解度チェック（Gemini AI）</h3>
-          <p class="sub">主旨・因果・対比・重要事実を評価する4択問題をGeminiで生成します。</p>
+          <p class="sub">読了後の4択クイズ出題の有無と使用モデルを選択できます。</p>
         </div>
-        <span id="apiBadge" class="status ok">Gemini直接</span>
+        <span id="apiBadge" class="status ok">出題あり</span>
       </div>
-      <div class="cfg">
-        <div>
-          <label for="apiMode">接続方式</label>
-          <select id="apiMode">
-            <option value="runtime" selected>Geminiキーを入力（直接接続）</option>
-            <option value="proxy">安全なバックエンドプロキシ</option>
-          </select>
+
+      <label>読了後のクイズ出題設定</label>
+      <div class="quiz-toggle-bar" role="group" aria-label="クイズ出題設定">
+        <button type="button" id="quizOnBtn" class="on">クイズを出題する</button>
+        <button type="button" id="quizOffBtn">クイズなし（WPM計測のみ）</button>
+      </div>
+
+      <div id="quizConfigBody">
+        <div class="cfg">
+          <div>
+            <label for="apiMode">接続方式</label>
+            <select id="apiMode">
+              <option value="runtime" selected>Geminiキーを入力（直接接続）</option>
+              <option value="proxy">安全なバックエンドプロキシ</option>
+            </select>
+          </div>
+          <div>
+            <label for="model">Geminiモデル</label>
+            <select id="model">
+              <option value="gemini-3.5-flash" selected>gemini-3.5-flash（推奨）</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash（標準・高速）</option>
+              <option value="gemini-2.5-pro">gemini-2.5-pro（高精度）</option>
+              <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+              <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
+              <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+              <option value="custom">カスタムモデル名を入力...</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label for="model">Geminiモデル</label>
-          <select id="model">
-            <option value="gemini-2.5-flash" selected>gemini-2.5-flash（標準・高速）</option>
-            <option value="gemini-2.5-pro">gemini-2.5-pro（高精度）</option>
-            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
-            <option value="gemini-3.6-flash">gemini-3.6-flash</option>
-            <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
-            <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
-            <option value="custom">カスタムモデル名を入力...</option>
-          </select>
+        <div id="customModelBox" style="display:none">
+          <label for="customModel">カスタムモデルID</label>
+          <input id="customModel" type="text" placeholder="例: gemini-3.5-flash">
         </div>
-      </div>
-      <div id="customModelBox" style="display:none">
-        <label for="customModel">カスタムモデルID</label>
-        <input id="customModel" type="text" placeholder="例: gemini-2.5-flash">
-      </div>
-      <div id="runtimeBox">
-        <label for="apiKey">Gemini APIキー</label>
-        <div class="row">
-          <input id="apiKey" class="grow" type="password" autocomplete="off" placeholder="AIza...">
-          <button type="button" id="testApi" class="btn sm ghost" style="white-space:nowrap">接続テスト</button>
+        <div id="runtimeBox">
+          <label for="apiKey">Gemini APIキー</label>
+          <div class="row">
+            <input id="apiKey" class="grow" type="password" autocomplete="off" placeholder="AIza...">
+            <button type="button" id="testApi" class="btn sm ghost" style="white-space:nowrap">接続テスト</button>
+          </div>
+          <div id="testResult" class="sub" style="margin-top:6px;display:none"></div>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px;color:var(--muted);margin-top:8px;cursor:pointer">
+            <input type="checkbox" id="saveKey" style="width:auto;margin:0" checked>
+            この端末（ブラウザ）にAPIキーを保存する
+          </label>
         </div>
-        <div id="testResult" class="sub" style="margin-top:6px;display:none"></div>
-        <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px;color:var(--muted);margin-top:8px;cursor:pointer">
-          <input type="checkbox" id="saveKey" style="width:auto;margin:0" checked>
-          この端末（ブラウザ）にAPIキーを保存する
-        </label>
+        <div id="proxyBox" style="display:none">
+          <label for="proxyUrl">プロキシURL</label>
+          <input id="proxyUrl" type="url" placeholder="https://your-worker.example.com/quiz">
+          <p class="sub">POST本文: <code>{ passage, model, prompt }</code>。レスポンス: <code>{ questions:[...] }</code></p>
+        </div>
+        <p class="note" style="margin-top:12px">※クイズ作成中の画面でも右上の「クイズをスキップ」からいつでも結果画面へ進めます。</p>
       </div>
-      <div id="proxyBox" style="display:none">
-        <label for="proxyUrl">プロキシURL</label>
-        <input id="proxyUrl" type="url" placeholder="https://your-worker.example.com/quiz">
-        <p class="sub">POST本文: <code>{ passage, model, prompt }</code>。レスポンス: <code>{ questions:[...] }</code></p>
+
+      <div id="quizOffNotice" class="note info" style="display:none;margin-top:10px">
+        「クイズなし」が選択されています。APIキー不要でチャンク読みを開始でき、読了後はすぐにWPM・語数・時間の結果画面へ進みます。
       </div>
-      <p class="note" style="margin-top:12px">※選択したモデルがAPI側で未対応（404等）の場合は、自動的に利用可能な最新Flashモデルへフォールバックして問題を作成します。</p>
     </div>
 
     <div class="start-wrap">
@@ -264,7 +294,7 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
         <span id="qProgress" class="status ok">問 1 / 3</span>
         <div class="quiztop-right">
           <b id="scoreNow">0 correct</b>
-          <button type="button" id="skipQuiz" class="btn sm" style="display:none">クイズをスキップ</button>
+          <button type="button" id="skipQuiz" class="btn sm ghost">クイズをスキップ</button>
         </div>
       </div>
       <div id="qText" class="qtext"></div>
@@ -294,19 +324,51 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
   <!-- 統計・履歴画面 -->
   <section id="stats" class="view">
     <div class="card">
-      <h2>学習レポート</h2>
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h2>学習レポート</h2>
+          <p class="sub" style="margin:0">累計統計は履歴が100件を超えても保持されます。</p>
+        </div>
+        <span id="totalSessionsBadge" class="status ok">累計 0回</span>
+      </div>
+
+      <div class="period-tabs" role="tablist" aria-label="集計期間切り替え">
+        <button type="button" data-period="all" class="on">全期間</button>
+        <button type="button" data-period="day">日別（今日）</button>
+        <button type="button" data-period="week">週別（今週）</button>
+        <button type="button" data-period="month">月別（今月）</button>
+      </div>
+
       <div class="resultgrid">
-        <div class="tile"><small>累積読了語数</small><b id="totalWords">0</b></div>
-        <div class="tile"><small>平均WPM</small><b id="avgWpm">0</b></div>
-        <div class="tile"><small>平均理解度</small><b id="avgScore">0%</b></div>
+        <div class="tile"><small id="lblAvgWpm">平均WPM（全期間）</small><b id="avgWpm">0</b></div>
+        <div class="tile"><small id="lblTotalWords">読了語数</small><b id="totalWords">0</b></div>
+        <div class="tile"><small id="lblAvgScore">平均理解度</small><b id="avgScore">-</b></div>
+      </div>
+
+      <div id="breakdownBox" class="breakdown-box" style="display:none">
+        <div class="breakdown-title">
+          <span id="breakdownHeading">日別平均WPMの推移</span>
+          <span id="breakdownSub">WPM / 回数</span>
+        </div>
+        <div id="breakdownList" class="breakdown-list"></div>
       </div>
     </div>
+
     <div class="card">
       <div class="row" style="justify-content:space-between">
-        <h3>最近の履歴</h3>
+        <div>
+          <h3 style="margin:0">最近の履歴（直近100件）</h3>
+        </div>
         <button type="button" id="clearHistory" class="btn sm danger">全削除</button>
       </div>
-      <div id="history" class="history"></div>
+      <div id="clearConfirmBar" class="confirm-bar">
+        <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#9f1239">履歴一覧と日別・週別・月別の累計WPM統計をすべて削除しますか？</p>
+        <div class="row">
+          <button type="button" id="confirmClearYes" class="btn sm danger grow">すべて削除する</button>
+          <button type="button" id="confirmClearNo" class="btn sm grow">キャンセル</button>
+        </div>
+      </div>
+      <div id="history" class="history" style="margin-top:10px"></div>
     </div>
   </section>
 </main>
@@ -331,6 +393,9 @@ window.addEventListener('error', function(ev) {
 var $ = function(s) { return document.querySelector(s); };
 var $$ = function(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
 
+const HIST_KEY = 'chunkreader_v2';
+const AGG_KEY = 'chunkreader_agg_stats_v1';
+
 const S = {
   words: [],
   splits: [],
@@ -344,7 +409,11 @@ const S = {
   q: 0,
   score: 0,
   answered: false,
-  quizSkipped: false
+  quizSkipped: false,
+  quizEnabled: true,
+  quizGenToken: 0,
+  activeAbortCtrl: null,
+  statsPeriod: 'all'
 };
 
 const sampleText = 'Recent studies show that getting seven to eight hours of quality sleep helps the human brain organize daily memories. During deep sleep stages, neural connections formed while studying are strengthened, while unnecessary information is filtered out. Students who stay awake all night before an important exam often recall forty percent less material than those who rest properly.';
@@ -358,7 +427,7 @@ function toast(t) {
   e.textContent = t;
   e.classList.add('on');
   clearTimeout(e._t);
-  e._t = setTimeout(() => e.classList.remove('on'), 4500);
+  e._t = setTimeout(() => e.classList.remove('on'), 4200);
 }
 
 function wordsOf(t) {
@@ -468,13 +537,32 @@ function currentText() {
 function getSelectedModel() {
   const sel = $('#model').value;
   if (sel === 'custom') {
-    return ($('#customModel').value.trim() || 'gemini-2.5-flash');
+    return ($('#customModel').value.trim() || 'gemini-3.5-flash');
   }
-  return sel || 'gemini-2.5-flash';
+  return sel || 'gemini-3.5-flash';
 }
 
 function sanitizeApiKey(raw) {
   return String(raw || '').replace(/[^\x21-\x7E]/g, '').trim();
+}
+
+function setQuizEnabled(enabled, persist = true) {
+  S.quizEnabled = !!enabled;
+  $('#quizOnBtn').classList.toggle('on', S.quizEnabled);
+  $('#quizOffBtn').classList.toggle('on', !S.quizEnabled);
+  $('#quizConfigBody').style.display = S.quizEnabled ? 'block' : 'none';
+  $('#quizOffNotice').style.display = S.quizEnabled ? 'none' : 'block';
+  const badge = $('#apiBadge');
+  if (S.quizEnabled) {
+    badge.textContent = $('#apiMode').value === 'runtime' ? '出題あり・Gemini' : '出題あり・プロキシ';
+    badge.className = 'status ok';
+  } else {
+    badge.textContent = 'クイズなし';
+    badge.className = 'status off';
+  }
+  if (persist) {
+    try { localStorage.setItem('chunkreader_quiz_enabled', S.quizEnabled ? '1' : '0'); } catch {}
+  }
 }
 
 function start() {
@@ -483,15 +571,17 @@ function start() {
     toast('12語以上の英文を入力してください');
     return;
   }
-  if ($('#apiMode').value === 'runtime' && !sanitizeApiKey($('#apiKey').value)) {
-    toast('先にGemini APIキーを入力してください');
-    $('#apiKey').focus();
-    return;
-  }
-  if ($('#apiMode').value === 'proxy' && !$('#proxyUrl').value.trim()) {
-    toast('先にプロキシURLを入力してください');
-    $('#proxyUrl').focus();
-    return;
+  if (S.quizEnabled) {
+    if ($('#apiMode').value === 'runtime' && !sanitizeApiKey($('#apiKey').value)) {
+      toast('先にGemini APIキーを入力するか、「クイズなし」を選択してください');
+      $('#apiKey').focus();
+      return;
+    }
+    if ($('#apiMode').value === 'proxy' && !$('#proxyUrl').value.trim()) {
+      toast('先にプロキシURLを入力するか、「クイズなし」を選択してください');
+      $('#proxyUrl').focus();
+      return;
+    }
   }
   S.chunks = buildChunks();
   S.idx = 0;
@@ -509,7 +599,11 @@ function renderRead() {
   $('#chunk').textContent = S.chunks[S.idx];
   $('#counter').textContent = `${S.idx + 1} / ${n}`;
   $('#bar').style.width = ((S.idx + 1) / n * 100) + '%';
-  $('#readHint').textContent = S.idx === n - 1 ? 'タップして読了・理解度チェックへ' : 'タップして次へ';
+  if (S.idx === n - 1) {
+    $('#readHint').textContent = S.quizEnabled ? 'タップして読了・理解度チェックへ' : 'タップして読了・結果を見る';
+  } else {
+    $('#readHint').textContent = 'タップして次へ';
+  }
 }
 
 async function advance() {
@@ -521,30 +615,65 @@ async function advance() {
   clearInterval(S.timer);
   S.seconds = Math.max(.5, (performance.now() - S.start) / 1000);
   S.wpm = Math.round(countWords(currentText()) / S.seconds * 60);
+
+  if (!S.quizEnabled) {
+    S.questions = [];
+    S.score = 0;
+    S.quizSkipped = true;
+    finish('none');
+    return;
+  }
+
   show('#quiz');
   await prepareQuiz();
 }
 
 const prompt = `あなたは英語読解評価の専門家です。英文の理解を確認する日本語4択問題を3問作成してください。\n要件: (1) 穴埋め、語句一致、本文中の数値だけを選ばせる問題は禁止。(2) 主旨、因果・目的、対比・条件、重要な事実の理解を優先。(3) 3問は異なる観点。(4) 誤答は本文の要素を自然に取り違えたものにし、明らかに荒唐無稽な選択肢を避ける。(5) questionと4 choicesは日本語。(6) explanationには根拠となる英文を引用し、理由を日本語で説明。(7) answerIndexは0始まり。JSON配列のみ。`;
 
-function fetchWithTimeout(url, options, timeoutMs = 45000) {
+function fetchWithTimeout(url, options, timeoutMs = 45000, genToken = null) {
   return new Promise((resolve, reject) => {
+    let controller = null;
+    if (typeof AbortController !== 'undefined') {
+      controller = new AbortController();
+      S.activeAbortCtrl = controller;
+    }
     const timer = setTimeout(() => {
+      if (controller) { try { controller.abort(); } catch {} }
       reject(new Error('通信が45秒でタイムアウトしました（電波状況を確認してください）'));
     }, timeoutMs);
-    fetch(url, options).then(
-      res => { clearTimeout(timer); resolve(res); },
-      err => { clearTimeout(timer); reject(err); }
+
+    const fetchOpts = controller ? { ...options, signal: controller.signal } : options;
+    fetch(url, fetchOpts).then(
+      res => {
+        clearTimeout(timer);
+        if (genToken !== null && genToken !== S.quizGenToken) {
+          reject(new Error('SKIPPED'));
+          return;
+        }
+        resolve(res);
+      },
+      err => {
+        clearTimeout(timer);
+        if (genToken !== null && genToken !== S.quizGenToken) {
+          reject(new Error('SKIPPED'));
+          return;
+        }
+        reject(err);
+      }
     );
   });
 }
 
-async function fetchWithRetry(url, options, maxRetries = 2) {
+async function fetchWithRetry(url, options, maxRetries = 2, genToken = null) {
   let lastErr;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (genToken !== null && genToken !== S.quizGenToken) {
+      throw new Error('SKIPPED');
+    }
     try {
-      return await fetchWithTimeout(url, options, 45000);
+      return await fetchWithTimeout(url, options, 45000, genToken);
     } catch (e) {
+      if (e.message === 'SKIPPED') throw e;
       lastErr = e;
       if (attempt < maxRetries) {
         await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
@@ -554,7 +683,7 @@ async function fetchWithRetry(url, options, maxRetries = 2) {
   throw lastErr;
 }
 
-async function callGeminiEndpoint(model, key, t) {
+async function callGeminiEndpoint(model, key, t, genToken) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const schema = {
     type: 'ARRAY',
@@ -571,7 +700,7 @@ async function callGeminiEndpoint(model, key, t) {
       required: ['question', 'choices', 'answerIndex', 'explanation']
     }
   };
-  const r = await fetchWithRetry(endpoint, {
+  return await fetchWithRetry(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -582,11 +711,10 @@ async function callGeminiEndpoint(model, key, t) {
         responseSchema: schema
       }
     })
-  });
-  return r;
+  }, 2, genToken);
 }
 
-async function geminiQuiz(t) {
+async function geminiQuiz(t, genToken) {
   const mode = $('#apiMode').value;
   const chosenModel = getSelectedModel();
   if (mode === 'proxy') {
@@ -596,7 +724,7 @@ async function geminiQuiz(t) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ passage: t, model: chosenModel, prompt })
-    });
+    }, 2, genToken);
     if (!r.ok) throw Error('プロキシ通信エラー HTTP ' + r.status);
     const d = await r.json();
     return validateQuestions(d.questions || d);
@@ -605,15 +733,16 @@ async function geminiQuiz(t) {
   if (!key) throw Error('Gemini APIキーが未入力です。設定画面で入力してください。');
 
   const candidates = [chosenModel];
-  ['gemini-2.5-flash', 'gemini-2.0-flash'].forEach(fb => {
+  ['gemini-3.5-flash', 'gemini-2.5-flash'].forEach(fb => {
     if (!candidates.includes(fb)) candidates.push(fb);
   });
 
   let lastErr = null;
   for (let i = 0; i < candidates.length; i++) {
+    if (genToken !== S.quizGenToken) throw new Error('SKIPPED');
     const m = candidates[i];
     try {
-      const r = await callGeminiEndpoint(m, key, t);
+      const r = await callGeminiEndpoint(m, key, t, genToken);
       if (!r.ok) {
         let d = {};
         try { d = await r.json(); } catch {}
@@ -625,6 +754,7 @@ async function geminiQuiz(t) {
         throw Error(`Gemini APIエラー (${m}): ${apiMsg}`);
       }
       const d = await r.json();
+      if (genToken !== S.quizGenToken) throw new Error('SKIPPED');
       const raw = (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text);
       if (!raw) throw Error('Geminiの応答が空でした');
       if (m !== chosenModel) {
@@ -632,6 +762,7 @@ async function geminiQuiz(t) {
       }
       return validateQuestions(JSON.parse(raw));
     } catch (e) {
+      if (e.message === 'SKIPPED') throw e;
       lastErr = e;
       if (i < candidates.length - 1 && /404|not found|not supported/i.test(String(e.message))) {
         continue;
@@ -658,6 +789,7 @@ function validateQuestions(x) {
 }
 
 async function prepareQuiz() {
+  const myToken = ++S.quizGenToken;
   S.q = 0;
   S.score = 0;
   S.answered = false;
@@ -665,7 +797,8 @@ async function prepareQuiz() {
   const errBox = $('#apiErrorBox');
   errBox.style.display = 'none';
   errBox.innerHTML = '';
-  $('#skipQuiz').style.display = 'none';
+  // 問題作成中でも常にスキップボタンを表示する
+  $('#skipQuiz').style.display = 'inline-block';
   $('#qProgress').textContent = '生成中...';
   $('#scoreNow').textContent = '';
   $('#qText').innerHTML = '<span class="spinner"></span>Geminiで理解度チェック問題を作成しています…';
@@ -673,16 +806,19 @@ async function prepareQuiz() {
   $('#feedback').style.display = 'none';
   $('#nextQ').style.display = 'none';
   try {
-    S.questions = await geminiQuiz(currentText());
+    const qs = await geminiQuiz(currentText(), myToken);
+    if (myToken !== S.quizGenToken || S.quizSkipped) return;
+    S.questions = qs;
     renderQ();
   } catch (e) {
+    if (myToken !== S.quizGenToken || S.quizSkipped || e.message === 'SKIPPED') return;
     const msg = e.message || 'API接続エラー';
     const isNetwork = /Load failed|Failed to fetch|NetworkError|タイムアウト/i.test(msg);
     $('#qText').textContent = '問題の作成に失敗しました';
     errBox.innerHTML = `
       <b>エラー詳細:</b> ${esc(msg)}<br>
       <span style="font-size:12px">${isNetwork
-        ? '・iPhoneのSafariで通信が遮断された可能性があります（コンテンツブロッカー、VPN、プライベートリレー、機内モード、またはAPIキーの前後スペース・全角文字を確認してください）。<br>・下の「クイズをスキップ」から今回の読書スピード記録だけ保存することもできます。'
+        ? '・iPhoneのSafariで通信が遮断された可能性があります（コンテンツブロッカー、VPN、プライベートリレー、機内モード、またはAPIキーを確認してください）。<br>・右上の「クイズをスキップ」から今回の読書スピード記録だけ保存することもできます。'
         : '・APIキーや選択したモデルが有効か確認してください。'}</span>
       <div class="row mobile" style="margin-top:12px">
         <button type="button" id="retryQuiz" class="btn primary grow">再試行する</button>
@@ -693,7 +829,18 @@ async function prepareQuiz() {
     errBox.style.display = 'block';
     $('#retryQuiz').onclick = () => prepareQuiz();
     $('#skipFromErr').onclick = () => skipQuiz();
-    $('#backToSetup').onclick = () => show('#setup');
+    $('#backToSetup').onclick = () => {
+      cancelPendingQuiz();
+      show('#setup');
+    };
+  }
+}
+
+function cancelPendingQuiz() {
+  S.quizGenToken++;
+  if (S.activeAbortCtrl) {
+    try { S.activeAbortCtrl.abort(); } catch {}
+    S.activeAbortCtrl = null;
   }
 }
 
@@ -719,9 +866,10 @@ function renderQ() {
 }
 
 function skipQuiz() {
+  cancelPendingQuiz();
   S.quizSkipped = true;
   $('#skipQuiz').style.display = 'none';
-  finish();
+  finish('skipped');
 }
 
 function answer(i) {
@@ -740,24 +888,142 @@ function answer(i) {
   $('#nextQ').textContent = S.q < S.questions.length - 1 ? '次の問題へ' : '結果を見る';
 }
 
-function finish() {
+/* ===== 日付キー・永続集計統計（100件超過後も保持） ===== */
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function getDateKeys(isoStr) {
+  const d = new Date(isoStr);
+  const y = d.getFullYear();
+  const m = pad2(d.getMonth() + 1);
+  const day = pad2(d.getDate());
+  const dayKey = `${y}-${m}-${day}`;
+  const monthKey = `${y}-${m}`;
+
+  // 月曜始まりの週キー（その週の月曜日の YYYY-MM-DD）
+  const localMidnight = new Date(y, d.getMonth(), d.getDate());
+  const dow = (localMidnight.getDay() + 6) % 7; // Mon=0 ... Sun=6
+  localMidnight.setDate(localMidnight.getDate() - dow);
+  const weekKey = `${localMidnight.getFullYear()}-${pad2(localMidnight.getMonth() + 1)}-${pad2(localMidnight.getDate())}`;
+
+  return { dayKey, weekKey, monthKey };
+}
+
+function emptyBucket() {
+  return { count: 0, wpmSum: 0, words: 0, scoreSum: 0, scoreTotal: 0 };
+}
+
+function defaultAggStats() {
+  return {
+    version: 1,
+    totalCount: 0,
+    totalWpmSum: 0,
+    totalWords: 0,
+    totalScoreSum: 0,
+    totalScoreTotal: 0,
+    byDay: {},
+    byWeek: {},
+    byMonth: {},
+    recordedIds: []
+  };
+}
+
+function applyRecordToAgg(agg, rec) {
+  if (!rec || typeof rec.wpm !== 'number') return;
+  if (rec.id && Array.isArray(agg.recordedIds) && agg.recordedIds.includes(rec.id)) {
+    return;
+  }
+  const { dayKey, weekKey, monthKey } = getDateKeys(rec.at || new Date().toISOString());
+  const w = Number(rec.words) || 0;
+  const wpm = Number(rec.wpm) || 0;
+  const hasQuiz = !rec.skipped && !rec.noQuiz && Number(rec.total) > 0;
+  const sc = hasQuiz ? (Number(rec.score) || 0) : 0;
+  const tot = hasQuiz ? (Number(rec.total) || 0) : 0;
+
+  agg.totalCount += 1;
+  agg.totalWpmSum += wpm;
+  agg.totalWords += w;
+  agg.totalScoreSum += sc;
+  agg.totalScoreTotal += tot;
+
+  [
+    [agg.byDay, dayKey],
+    [agg.byWeek, weekKey],
+    [agg.byMonth, monthKey]
+  ].forEach(([map, key]) => {
+    if (!map[key]) map[key] = emptyBucket();
+    map[key].count += 1;
+    map[key].wpmSum += wpm;
+    map[key].words += w;
+    map[key].scoreSum += sc;
+    map[key].scoreTotal += tot;
+  });
+
+  if (rec.id) {
+    if (!Array.isArray(agg.recordedIds)) agg.recordedIds = [];
+    agg.recordedIds.push(rec.id);
+    if (agg.recordedIds.length > 300) {
+      agg.recordedIds = agg.recordedIds.slice(-300);
+    }
+  }
+}
+
+function loadAggStats() {
+  let agg = null;
+  try {
+    const raw = localStorage.getItem(AGG_KEY);
+    if (raw) agg = JSON.parse(raw);
+  } catch {}
+
+  if (!agg || typeof agg !== 'object' || !agg.byDay) {
+    agg = defaultAggStats();
+    // 既存の履歴があれば初回移行
+    const existing = history();
+    existing.slice().reverse().forEach(rec => applyRecordToAgg(agg, rec));
+    saveAggStats(agg);
+  }
+  return agg;
+}
+
+function saveAggStats(agg) {
+  try {
+    localStorage.setItem(AGG_KEY, JSON.stringify(agg));
+  } catch {}
+}
+
+function finish(quizMode = 'scored') {
   $('#skipQuiz').style.display = 'none';
-  const totalQ = S.questions.length || 3;
-  const scoreDisplay = S.quizSkipped ? 'スキップ' : `${S.score} / ${totalQ}`;
+  const isNoQuiz = quizMode === 'none';
+  const isSkipped = quizMode === 'skipped' || S.quizSkipped;
+  const totalQ = isNoQuiz ? 0 : (S.questions.length || 3);
+  const scoreDisplay = isNoQuiz ? 'なし' : isSkipped ? 'スキップ' : `${S.score} / ${totalQ}`;
+
   const rec = {
     id: Date.now(),
     at: new Date().toISOString(),
     words: countWords(currentText()),
     seconds: +S.seconds.toFixed(1),
     wpm: S.wpm,
-    score: S.score,
+    score: (isNoQuiz || isSkipped) ? 0 : S.score,
     total: totalQ,
-    skipped: S.quizSkipped,
+    skipped: isSkipped,
+    noQuiz: isNoQuiz,
     preview: currentText().slice(0, 70)
   };
+
+  // 1) 独立した永続累計統計（100件超過後も消えない）へ加算
+  const agg = loadAggStats();
+  applyRecordToAgg(agg, rec);
+  saveAggStats(agg);
+
+  // 2) 詳細履歴リスト（直近100件）を更新
   const h = history();
   h.unshift(rec);
-  localStorage.setItem('chunkreader_v2', JSON.stringify(h.slice(0, 100)));
+  try {
+    localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(0, 100)));
+  } catch {}
+
   $('#resWpm').textContent = rec.wpm;
   $('#resWords').textContent = rec.words + '語';
   $('#resTime').textContent = rec.seconds + '秒';
@@ -766,20 +1032,141 @@ function finish() {
 }
 
 function history() {
-  try { return JSON.parse(localStorage.getItem('chunkreader_v2')) || []; } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch { return []; }
+}
+
+function formatWeekLabel(weekKey) {
+  const parts = weekKey.split('-').map(Number);
+  if (parts.length !== 3) return weekKey;
+  const start = new Date(parts[0], parts[1] - 1, parts[2]);
+  const end = new Date(parts[0], parts[1] - 1, parts[2] + 6);
+  return `${start.getMonth() + 1}/${start.getDate()}〜${end.getMonth() + 1}/${end.getDate()}週`;
+}
+
+function formatDayLabel(dayKey) {
+  const parts = dayKey.split('-').map(Number);
+  if (parts.length !== 3) return dayKey;
+  return `${parts[0]}/${parts[1]}/${parts[2]}`;
+}
+
+function formatMonthLabel(monthKey) {
+  const parts = monthKey.split('-').map(Number);
+  if (parts.length !== 2) return monthKey;
+  return `${parts[0]}年${parts[1]}月`;
 }
 
 function renderStats() {
-  const h = history(),
-    words = h.reduce((a, x) => a + x.words, 0),
-    wpm = h.length ? Math.round(h.reduce((a, x) => a + x.wpm, 0) / h.length) : 0,
-    scored = h.filter(x => !x.skipped && x.total > 0),
-    score = scored.length ? Math.round(scored.reduce((a, x) => a + x.score / x.total, 0) / scored.length * 100) : 0;
-  $('#totalWords').textContent = words.toLocaleString();
-  $('#avgWpm').textContent = wpm;
-  $('#avgScore').textContent = scored.length ? (score + '%') : '-';
-  $('#history').innerHTML = h.length ? h.slice(0, 20).map(x => {
-    const scoreText = x.skipped ? '理解度 スキップ' : `理解度 ${x.score}/${x.total}`;
+  const agg = loadAggStats();
+  const h = history();
+  const nowKeys = getDateKeys(new Date().toISOString());
+  const p = S.statsPeriod;
+
+  $('#totalSessionsBadge').textContent = `累計 ${agg.totalCount}回`;
+
+  let targetCount = 0;
+  let targetWpmSum = 0;
+  let targetWords = 0;
+  let targetScoreSum = 0;
+  let targetScoreTotal = 0;
+  let periodTitle = '全期間';
+
+  if (p === 'all') {
+    targetCount = agg.totalCount;
+    targetWpmSum = agg.totalWpmSum;
+    targetWords = agg.totalWords;
+    targetScoreSum = agg.totalScoreSum;
+    targetScoreTotal = agg.totalScoreTotal;
+    periodTitle = '全期間';
+  } else if (p === 'day') {
+    const b = agg.byDay[nowKeys.dayKey] || emptyBucket();
+    targetCount = b.count;
+    targetWpmSum = b.wpmSum;
+    targetWords = b.words;
+    targetScoreSum = b.scoreSum;
+    targetScoreTotal = b.scoreTotal;
+    periodTitle = '今日';
+  } else if (p === 'week') {
+    const b = agg.byWeek[nowKeys.weekKey] || emptyBucket();
+    targetCount = b.count;
+    targetWpmSum = b.wpmSum;
+    targetWords = b.words;
+    targetScoreSum = b.scoreSum;
+    targetScoreTotal = b.scoreTotal;
+    periodTitle = '今週';
+  } else if (p === 'month') {
+    const b = agg.byMonth[nowKeys.monthKey] || emptyBucket();
+    targetCount = b.count;
+    targetWpmSum = b.wpmSum;
+    targetWords = b.words;
+    targetScoreSum = b.scoreSum;
+    targetScoreTotal = b.scoreTotal;
+    periodTitle = '今月';
+  }
+
+  const avgWpm = targetCount ? Math.round(targetWpmSum / targetCount) : 0;
+  const avgScore = targetScoreTotal > 0 ? Math.round((targetScoreSum / targetScoreTotal) * 100) + '%' : '-';
+
+  $('#lblAvgWpm').textContent = `平均WPM（${periodTitle}）`;
+  $('#lblTotalWords').textContent = `読了語数（${periodTitle}）`;
+  $('#lblAvgScore').textContent = `平均理解度（${periodTitle}）`;
+  $('#avgWpm').textContent = avgWpm;
+  $('#totalWords').textContent = targetWords.toLocaleString();
+  $('#avgScore').textContent = avgScore;
+
+  // 日別・週別・月別の推移リスト描画
+  const bBox = $('#breakdownBox');
+  const bList = $('#breakdownList');
+  if (p === 'all') {
+    // 全期間選択時は「今日 / 今週 / 今月」の比較サマリーを表示
+    bBox.style.display = 'block';
+    $('#breakdownHeading').textContent = '期間別平均WPMサマリー（100件超でも永続保持）';
+    const dB = agg.byDay[nowKeys.dayKey] || emptyBucket();
+    const wB = agg.byWeek[nowKeys.weekKey] || emptyBucket();
+    const mB = agg.byMonth[nowKeys.monthKey] || emptyBucket();
+    const rows = [
+      { label: `日別（今日 ${formatDayLabel(nowKeys.dayKey)}）`, b: dB },
+      { label: `週別（${formatWeekLabel(nowKeys.weekKey)}）`, b: wB },
+      { label: `月別（${formatMonthLabel(nowKeys.monthKey)}）`, b: mB }
+    ];
+    const maxWpm = Math.max(250, ...rows.map(r => r.b.count ? Math.round(r.b.wpmSum / r.b.count) : 0));
+    bList.innerHTML = rows.map(r => {
+      const wVal = r.b.count ? Math.round(r.b.wpmSum / r.b.count) : 0;
+      const pct = Math.min(100, Math.round((wVal / maxWpm) * 100));
+      return `<div class="b-row">
+        <div class="b-row-left">
+          <div><b>${esc(r.label)}</b> <small style="color:var(--muted)">(${r.b.count}回 / ${r.b.words.toLocaleString()}語)</small></div>
+          <div class="b-bar-wrap"><div class="b-bar" style="width:${pct}%"></div></div>
+        </div>
+        <div class="b-wpm">${r.b.count ? wVal + ' WPM' : '-'}</div>
+      </div>`;
+    }).join('');
+  } else {
+    const map = p === 'day' ? agg.byDay : p === 'week' ? agg.byWeek : agg.byMonth;
+    const keys = Object.keys(map).sort().reverse().slice(0, 12);
+    if (!keys.length) {
+      bBox.style.display = 'none';
+    } else {
+      bBox.style.display = 'block';
+      $('#breakdownHeading').textContent = p === 'day' ? '日別の平均WPM一覧' : p === 'week' ? '週別の平均WPM一覧' : '月別の平均WPM一覧';
+      const maxWpm = Math.max(250, ...keys.map(k => map[k].count ? Math.round(map[k].wpmSum / map[k].count) : 0));
+      bList.innerHTML = keys.map(k => {
+        const b = map[k];
+        const wVal = b.count ? Math.round(b.wpmSum / b.count) : 0;
+        const pct = Math.min(100, Math.round((wVal / maxWpm) * 100));
+        const label = p === 'day' ? formatDayLabel(k) : p === 'week' ? formatWeekLabel(k) : formatMonthLabel(k);
+        return `<div class="b-row">
+          <div class="b-row-left">
+            <div><b>${esc(label)}</b> <small style="color:var(--muted)">(${b.count}回 / ${b.words.toLocaleString()}語)</small></div>
+            <div class="b-bar-wrap"><div class="b-bar" style="width:${pct}%"></div></div>
+          </div>
+          <div class="b-wpm">${wVal} WPM</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  $('#history').innerHTML = h.length ? h.slice(0, 30).map(x => {
+    const scoreText = x.noQuiz ? 'クイズなし' : x.skipped ? '理解度 スキップ' : `理解度 ${x.score}/${x.total}`;
     return `<div class="hist"><div><b>${new Date(x.at).toLocaleDateString('ja-JP')} · ${esc(x.preview)}</b><br><small>${x.words}語 / ${x.seconds}秒 / ${scoreText}</small></div><strong>${x.wpm}<small> WPM</small></strong></div>`;
   }).join('') : '<div class="empty">まだ履歴がありません。</div>';
 }
@@ -887,6 +1274,15 @@ $$('[data-source]').forEach(b => b.onclick = () => {
   $('#newsPane').style.display = b.dataset.source === 'news' ? 'block' : 'none';
 });
 
+$$('[data-period]').forEach(b => b.onclick = () => {
+  $$('[data-period]').forEach(x => x.classList.toggle('on', x === b));
+  S.statsPeriod = b.dataset.period;
+  renderStats();
+});
+
+$('#quizOnBtn').onclick = () => setQuizEnabled(true);
+$('#quizOffBtn').onclick = () => setQuizEnabled(false);
+
 $('#passage').addEventListener('input', analyze);
 $('#sample').onclick = () => { $('#passage').value = sampleText; analyze(); };
 $('#clear').onclick = () => { $('#passage').value = ''; analyze(); };
@@ -899,7 +1295,7 @@ $('#nextQ').onclick = () => {
   if (S.q < S.questions.length - 1) {
     S.q++;
     renderQ();
-  } else finish();
+  } else finish('scored');
 };
 $('#again').onclick = start;
 $('#newText').onclick = () => show('#setup');
@@ -915,15 +1311,22 @@ $('#navStats').onclick = () => {
   $('#navTrain').classList.remove('on');
 };
 $('#clearHistory').onclick = () => {
-  localStorage.removeItem('chunkreader_v2');
+  $('#clearConfirmBar').classList.add('on');
+};
+$('#confirmClearNo').onclick = () => {
+  $('#clearConfirmBar').classList.remove('on');
+};
+$('#confirmClearYes').onclick = () => {
+  localStorage.removeItem(HIST_KEY);
+  localStorage.removeItem(AGG_KEY);
+  $('#clearConfirmBar').classList.remove('on');
   renderStats();
-  toast('履歴を削除しました');
+  toast('履歴と累計統計をすべて削除しました');
 };
 $('#apiMode').onchange = e => {
   $('#runtimeBox').style.display = e.target.value === 'runtime' ? 'block' : 'none';
   $('#proxyBox').style.display = e.target.value === 'proxy' ? 'block' : 'none';
-  $('#apiBadge').textContent = e.target.value === 'runtime' ? 'Gemini直接' : 'プロキシ';
-  $('#apiBadge').classList.add('ok');
+  setQuizEnabled(S.quizEnabled, false);
 };
 $('#apiKey').addEventListener('input', syncKeyStorage);
 $('#saveKey').addEventListener('change', syncKeyStorage);
@@ -961,6 +1364,14 @@ try {
     $('#model').value = savedSel;
     $('#customModelBox').style.display = savedSel === 'custom' ? 'block' : 'none';
   }
+  const savedQuizEnabled = localStorage.getItem('chunkreader_quiz_enabled');
+  if (savedQuizEnabled !== null) {
+    setQuizEnabled(savedQuizEnabled === '1', false);
+  } else {
+    setQuizEnabled(true, false);
+  }
+  // 既存履歴があれば累計統計ストレージへ自動同期
+  loadAggStats();
 } catch {}
 
 $('#passage').value = sampleText;
