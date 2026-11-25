@@ -31,6 +31,9 @@ button{cursor:pointer}
 .card h2,.card h3{margin:0 0 8px}
 .sub{font-size:13px;color:var(--muted);line-height:1.55}
 .source-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.input-mode-bar{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#f1f5f9;padding:4px;border-radius:12px;margin:8px 0 10px}
+.input-mode-bar button{border:0;border-radius:9px;padding:9px 10px;font-size:13px;font-weight:800;background:transparent;color:#475569}
+.input-mode-bar button.on{background:white;color:var(--pri);box-shadow:0 1px 4px #0001}
 .source-tabs button{border:1px solid var(--line);background:white;border-radius:12px;padding:11px;font-weight:800;color:#475569}
 .source-tabs button.on{background:#eef2ff;border-color:#a5b4fc;color:var(--pri)}
 label{display:block;font-size:13px;font-weight:800;margin:10px 0 6px}
@@ -153,6 +156,11 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
     <div id="customPane" class="card">
       <h2>英文を入力</h2>
       <p class="sub">公開済みの一般英文、または自作英文を貼り付けてください。</p>
+      <div class="input-mode-bar" role="group" aria-label="英文入力モード">
+        <button type="button" id="modeAutoBtn" class="on">通常の英文を入力</button>
+        <button type="button" id="modeSlashBtn">チャンク区切り済みの文章を入力</button>
+      </div>
+      <p id="inputModeHint" class="sub" style="margin:0 0 8px">自動分割でチャンクを作成します（下部のエディタで手動調整も可能）。</p>
       <textarea id="passage" rows="8" placeholder="英文を貼り付けてください"></textarea>
       <div class="metrics">
         <span><strong id="wc">0</strong> words</span>
@@ -400,6 +408,7 @@ const S = {
   words: [],
   splits: [],
   chunks: [],
+  slashMode: false,
   idx: 0,
   start: 0,
   timer: null,
@@ -430,12 +439,18 @@ function toast(t) {
   e._t = setTimeout(() => e.classList.remove('on'), 4200);
 }
 
+function stripSlashMarkers(t) {
+  return String(t || '').replace(/[\/／]+/g, ' ');
+}
+
 function wordsOf(t) {
-  return (t.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*|[^\s]/g) || []).filter(x => !/^\s+$/.test(x));
+  const srcText = S.slashMode ? stripSlashMarkers(t) : t;
+  return (srcText.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*|[^\s]/g) || []).filter(x => !/^\s+$/.test(x));
 }
 
 function countWords(t) {
-  return (t.match(/\b[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*\b/g) || []).length;
+  const srcText = S.slashMode ? stripSlashMarkers(t) : t;
+  return (srcText.match(/\b[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*\b/g) || []).length;
 }
 
 function clean(t) {
@@ -476,6 +491,33 @@ function autoSplit(tokens) {
   return out;
 }
 
+function splitBySlash(rawText) {
+  const rawParts = String(rawText || '').split(/[\/／]+/);
+  const words = [];
+  const splits = [];
+  rawParts.forEach((part, pIdx) => {
+    const partTokens = (part.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*|[^\s]/g) || []).filter(x => !/^\s+$/.test(x));
+    if (!partTokens.length) return;
+    partTokens.forEach((tok, tIdx) => {
+      words.push(tok);
+      if (tIdx < partTokens.length - 1) {
+        splits.push(false);
+      }
+    });
+    // このパートの末尾にスラッシュがあり、後続にもトークンがある場合は区切りを入れる
+    if (pIdx < rawParts.length - 1 && words.length > 0) {
+      // 後続パートに有効なトークンが存在するか確認
+      const hasLaterTokens = rawParts.slice(pIdx + 1).some(later =>
+        ((later.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*|[^\s]/g) || []).filter(x => !/^\s+$/.test(x))).length > 0
+      );
+      if (hasLaterTokens) {
+        splits.push(true);
+      }
+    }
+  });
+  return { words, splits };
+}
+
 function buildChunks() {
   const a = [];
   let c = [];
@@ -490,9 +532,30 @@ function buildChunks() {
 }
 
 function analyze() {
-  S.words = wordsOf($('#passage').value.trim());
-  S.splits = autoSplit(S.words);
+  const raw = $('#passage').value.trim();
+  if (S.slashMode) {
+    const parsed = splitBySlash(raw);
+    S.words = parsed.words;
+    S.splits = parsed.splits;
+  } else {
+    S.words = wordsOf(raw);
+    S.splits = autoSplit(S.words);
+  }
   renderEditor();
+}
+
+function setInputMode(useSlash) {
+  S.slashMode = !!useSlash;
+  $('#modeAutoBtn').classList.toggle('on', !S.slashMode);
+  $('#modeSlashBtn').classList.toggle('on', S.slashMode);
+  if (S.slashMode) {
+    $('#inputModeHint').textContent = 'スラッシュ「/」で区切られた箇所をチャンクの区切りとして認識します（エディタで微調整も可能）。';
+    $('#passage').placeholder = '例: Recent studies show / that getting seven to eight hours / of quality sleep / helps the human brain...';
+  } else {
+    $('#inputModeHint').textContent = '自動分割でチャンクを作成します（下部のエディタで手動調整も可能）。';
+    $('#passage').placeholder = '英文を貼り付けてください';
+  }
+  analyze();
 }
 
 function renderEditor() {
@@ -1280,6 +1343,8 @@ $$('[data-period]').forEach(b => b.onclick = () => {
   renderStats();
 });
 
+$('#modeAutoBtn').onclick = () => setInputMode(false);
+$('#modeSlashBtn').onclick = () => setInputMode(true);
 $('#quizOnBtn').onclick = () => setQuizEnabled(true);
 $('#quizOffBtn').onclick = () => setQuizEnabled(false);
 
@@ -1374,7 +1439,7 @@ try {
   loadAggStats();
 } catch {}
 
-$('#passage').value = sampleText;
+$('#passage').value = '';
 analyze();
 document.documentElement.setAttribute('data-app-ready', 'true');
 </script>
