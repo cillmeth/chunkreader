@@ -209,7 +209,7 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
       <div class="row" style="justify-content:space-between">
         <div>
           <h3>理解度チェック（Gemini AI）</h3>
-          <p class="sub">読了後の4択クイズ出題の有無と使用モデルを選択できます。</p>
+          <p class="sub">読了後の3択クイズ（2問）出題の有無と使用モデルを選択できます。</p>
         </div>
         <span id="apiBadge" class="status ok">出題あり</span>
       </div>
@@ -233,11 +233,6 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
             <label for="model">Geminiモデル</label>
             <select id="model">
               <option value="gemini-3.5-flash" selected>gemini-3.5-flash（推奨）</option>
-              <option value="gemini-2.5-flash">gemini-2.5-flash（標準・高速）</option>
-              <option value="gemini-2.5-pro">gemini-2.5-pro（高精度）</option>
-              <option value="gemini-3.6-flash">gemini-3.6-flash</option>
-              <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
-              <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
               <option value="custom">カスタムモデル名を入力...</option>
             </select>
           </div>
@@ -299,7 +294,7 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
     <div class="card">
       <div id="apiErrorBox" class="api-error-box" style="display:none"></div>
       <div class="quiztop">
-        <span id="qProgress" class="status ok">問 1 / 3</span>
+        <span id="qProgress" class="status ok">問 1 / 2</span>
         <div class="quiztop-right">
           <b id="scoreNow">0 correct</b>
           <button type="button" id="skipQuiz" class="btn sm ghost">クイズをスキップ</button>
@@ -320,7 +315,7 @@ textarea:focus,input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3p
       <div class="resultgrid">
         <div class="tile"><small>語数</small><b id="resWords">0</b></div>
         <div class="tile"><small>時間</small><b id="resTime">0秒</b></div>
-        <div class="tile"><small>理解度</small><b id="resScore">0 / 3</b></div>
+        <div class="tile"><small>理解度</small><b id="resScore">0 / 2</b></div>
       </div>
       <div class="row mobile">
         <button type="button" id="again" class="btn ghost grow">同じ英文でもう一度</button>
@@ -421,6 +416,7 @@ const S = {
   quizSkipped: false,
   quizEnabled: true,
   quizGenToken: 0,
+  quizPrefetch: null,
   activeAbortCtrl: null,
   statsPeriod: 'all'
 };
@@ -504,9 +500,7 @@ function splitBySlash(rawText) {
         splits.push(false);
       }
     });
-    // このパートの末尾にスラッシュがあり、後続にもトークンがある場合は区切りを入れる
     if (pIdx < rawParts.length - 1 && words.length > 0) {
-      // 後続パートに有効なトークンが存在するか確認
       const hasLaterTokens = rawParts.slice(pIdx + 1).some(later =>
         ((later.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*|[^\s]/g) || []).filter(x => !/^\s+$/.test(x))).length > 0
       );
@@ -646,6 +640,7 @@ function start() {
       return;
     }
   }
+  cancelPendingQuiz();
   S.chunks = buildChunks();
   S.idx = 0;
   S.start = performance.now();
@@ -653,6 +648,9 @@ function start() {
   S.timer = setInterval(() => {
     $('#timer').textContent = ((performance.now() - S.start) / 1000).toFixed(1) + '秒';
   }, 100);
+  if (S.quizEnabled) {
+    startQuizPrefetch(currentText());
+  }
   show('#reading');
   renderRead();
 }
@@ -691,24 +689,65 @@ async function advance() {
   await prepareQuiz();
 }
 
-const prompt = `あなたは英語読解評価の専門家です。英文の理解を確認する日本語4択問題を3問作成してください。\n要件: (1) 穴埋め、語句一致、本文中の数値だけを選ばせる問題は禁止。(2) 主旨、因果・目的、対比・条件、重要な事実の理解を優先。(3) 3問は異なる観点。(4) 誤答は本文の要素を自然に取り違えたものにし、明らかに荒唐無稽な選択肢を避ける。(5) questionと4 choicesは日本語。(6) explanationには根拠となる英文を引用し、理由を日本語で説明。(7) answerIndexは0始まり。JSON配列のみ。`;
+const prompt = [
+  'あなたは英語読解評価の専門家です。与えられた英文の理解度を測る日本語の3択問題を2問作成してください。',
+  '出題要件:',
+  '1. 穴埋め、単語・語句の単純一致、本文中の数値や固有名詞をそのまま選ばせる問題は禁止します。',
+  '2. 英文の主旨、因果関係・目的、対比・条件、筆者の主張や重要な事実の理解を問う問題にしてください。',
+  '3. 2問はそれぞれ異なる読解観点（例：主旨と因果関係、事実と対比など）から作成してください。',
+  '4. 誤答の選択肢は、本文の要素を自然に取り違えた紛らわしいものにし、明らかに不自然な選択肢や極端な否定は避けてください。',
+  '5. 英文の難易度やトーンに合わせ、難解すぎる専門用語を避けた分かりやすい日本語で問題文と3つの選択肢を作成してください。',
+  '6. explanation は「根拠となる短い英文（原則1文以内）」のあとに「日本語の解説」を続けて記述してください。',
+  '7. answerIndex は正解選択肢の0から始まるインデックス（0, 1, 2 のいずれか）を指定してください。'
+].join('\n');
+
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+function isRetryableError(err, status = null) {
+  if (err && err.message === 'SKIPPED') return false;
+  if (typeof status === 'number') {
+    return RETRYABLE_STATUS.has(status);
+  }
+  return true;
+}
+
+async function extractGeminiErrorMessage(res, fallbackPrefix = 'APIエラー') {
+  let msg = `HTTP ${res.status}`;
+  try {
+    const data = await res.json();
+    if (data && data.error && data.error.message) {
+      msg = data.error.message;
+    }
+  } catch {}
+  return `${fallbackPrefix}: ${msg}`;
+}
 
 function fetchWithTimeout(url, options, timeoutMs = 45000, genToken = null) {
   return new Promise((resolve, reject) => {
-    let controller = null;
-    if (typeof AbortController !== 'undefined') {
-      controller = new AbortController();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    if (controller) {
       S.activeAbortCtrl = controller;
     }
+
     const timer = setTimeout(() => {
-      if (controller) { try { controller.abort(); } catch {} }
-      reject(new Error('通信が45秒でタイムアウトしました（電波状況を確認してください）'));
+      if (controller) {
+        try { controller.abort(); } catch {}
+      }
+      reject(new Error('通信がタイムアウトしました（電波状況を確認してください）'));
     }, timeoutMs);
 
+    const cleanup = () => {
+      clearTimeout(timer);
+      if (S.activeAbortCtrl === controller) {
+        S.activeAbortCtrl = null;
+      }
+    };
+
     const fetchOpts = controller ? { ...options, signal: controller.signal } : options;
+
     fetch(url, fetchOpts).then(
       res => {
-        clearTimeout(timer);
+        cleanup();
         if (genToken !== null && genToken !== S.quizGenToken) {
           reject(new Error('SKIPPED'));
           return;
@@ -716,7 +755,7 @@ function fetchWithTimeout(url, options, timeoutMs = 45000, genToken = null) {
         resolve(res);
       },
       err => {
-        clearTimeout(timer);
+        cleanup();
         if (genToken !== null && genToken !== S.quizGenToken) {
           reject(new Error('SKIPPED'));
           return;
@@ -727,22 +766,38 @@ function fetchWithTimeout(url, options, timeoutMs = 45000, genToken = null) {
   });
 }
 
-async function fetchWithRetry(url, options, maxRetries = 2, genToken = null) {
+async function fetchGeminiJsonWithRetry(url, options, timeoutMs = 45000, maxRetries = 1, genToken = null, errorPrefix = 'Gemini APIエラー') {
   let lastErr;
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     if (genToken !== null && genToken !== S.quizGenToken) {
       throw new Error('SKIPPED');
     }
+
     try {
-      return await fetchWithTimeout(url, options, 45000, genToken);
-    } catch (e) {
-      if (e.message === 'SKIPPED') throw e;
-      lastErr = e;
-      if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+      const res = await fetchWithTimeout(url, options, timeoutMs, genToken);
+      if (res.ok) {
+        return await res.json();
       }
+
+      const formattedErr = new Error(await extractGeminiErrorMessage(res, errorPrefix));
+      if (attempt < maxRetries && isRetryableError(formattedErr, res.status)) {
+        lastErr = formattedErr;
+        await new Promise(r => setTimeout(r, 800));
+        continue;
+      }
+      throw formattedErr;
+    } catch (e) {
+      if (e && e.message === 'SKIPPED') throw e;
+      lastErr = e;
+      if (attempt < maxRetries && isRetryableError(e, null)) {
+        await new Promise(r => setTimeout(r, 800));
+        continue;
+      }
+      throw lastErr;
     }
   }
+
   throw lastErr;
 }
 
@@ -750,109 +805,108 @@ async function callGeminiEndpoint(model, key, t, genToken) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const schema = {
     type: 'ARRAY',
-    minItems: 3,
-    maxItems: 3,
+    minItems: 2,
+    maxItems: 2,
     items: {
       type: 'OBJECT',
       properties: {
         question: { type: 'STRING' },
-        choices: { type: 'ARRAY', minItems: 4, maxItems: 4, items: { type: 'STRING' } },
+        choices: { type: 'ARRAY', minItems: 3, maxItems: 3, items: { type: 'STRING' } },
         answerIndex: { type: 'INTEGER' },
         explanation: { type: 'STRING' }
       },
       required: ['question', 'choices', 'answerIndex', 'explanation']
     }
   };
-  return await fetchWithRetry(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt + '\n\n英文:\n' + t }] }],
-      generationConfig: {
-        temperature: 0.25,
-        responseMimeType: 'application/json',
-        responseSchema: schema
-      }
-    })
-  }, 2, genToken);
+
+  return await fetchGeminiJsonWithRetry(
+    endpoint,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt + '\n\n英文:\n' + t }] }],
+        generationConfig: {
+          temperature: 0.25,
+          responseMimeType: 'application/json',
+          responseSchema: schema
+        }
+      })
+    },
+    45000,
+    1,
+    genToken,
+    `Gemini APIエラー (${model})`
+  );
 }
 
 async function geminiQuiz(t, genToken) {
   const mode = $('#apiMode').value;
   const chosenModel = getSelectedModel();
+
   if (mode === 'proxy') {
     const u = $('#proxyUrl').value.trim();
-    if (!u) throw Error('プロキシURLを入力してください');
-    const r = await fetchWithRetry(u, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passage: t, model: chosenModel, prompt })
-    }, 2, genToken);
-    if (!r.ok) throw Error('プロキシ通信エラー HTTP ' + r.status);
-    const d = await r.json();
+    if (!u) throw new Error('プロキシURLを入力してください');
+    const d = await fetchGeminiJsonWithRetry(
+      u,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passage: t, model: chosenModel, prompt })
+      },
+      45000,
+      1,
+      genToken,
+      'プロキシ通信エラー'
+    );
     return validateQuestions(d.questions || d);
   }
+
   const key = sanitizeApiKey($('#apiKey').value);
-  if (!key) throw Error('Gemini APIキーが未入力です。設定画面で入力してください。');
+  if (!key) throw new Error('Gemini APIキーが未入力です。設定画面で入力してください。');
 
-  const candidates = [chosenModel];
-  ['gemini-3.5-flash', 'gemini-2.5-flash'].forEach(fb => {
-    if (!candidates.includes(fb)) candidates.push(fb);
-  });
+  if (genToken !== S.quizGenToken) throw new Error('SKIPPED');
+  const d = await callGeminiEndpoint(chosenModel, key, t, genToken);
+  if (genToken !== S.quizGenToken) throw new Error('SKIPPED');
 
-  let lastErr = null;
-  for (let i = 0; i < candidates.length; i++) {
-    if (genToken !== S.quizGenToken) throw new Error('SKIPPED');
-    const m = candidates[i];
-    try {
-      const r = await callGeminiEndpoint(m, key, t, genToken);
-      if (!r.ok) {
-        let d = {};
-        try { d = await r.json(); } catch {}
-        const apiMsg = (d && d.error && d.error.message) ? d.error.message : `HTTP ${r.status}`;
-        if ((r.status === 404 || r.status === 400) && i < candidates.length - 1) {
-          lastErr = Error(`Gemini APIエラー (${m}): ${apiMsg}`);
-          continue;
-        }
-        throw Error(`Gemini APIエラー (${m}): ${apiMsg}`);
-      }
-      const d = await r.json();
-      if (genToken !== S.quizGenToken) throw new Error('SKIPPED');
-      const raw = (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text);
-      if (!raw) throw Error('Geminiの応答が空でした');
-      if (m !== chosenModel) {
-        toast(`モデル ${chosenModel} が未対応のため ${m} で作成しました`);
-      }
-      return validateQuestions(JSON.parse(raw));
-    } catch (e) {
-      if (e.message === 'SKIPPED') throw e;
-      lastErr = e;
-      if (i < candidates.length - 1 && /404|not found|not supported/i.test(String(e.message))) {
-        continue;
-      }
-      throw e;
-    }
-  }
-  throw lastErr || Error('Gemini APIへの接続に失敗しました');
+  const raw = d?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!raw) throw new Error('Geminiの応答が空でした');
+  return validateQuestions(JSON.parse(raw));
 }
 
 function validateQuestions(x) {
-  if (!Array.isArray(x) || x.length < 3) throw Error('問題データの形式が不正です');
-  return x.slice(0, 3).map(q => {
-    if (!Array.isArray(q.choices) || q.choices.length !== 4) throw Error('選択肢が4つではありません');
+  if (!Array.isArray(x) || x.length < 2) throw new Error('問題データの形式が不正です');
+  return x.slice(0, 2).map(q => {
+    if (!q || !Array.isArray(q.choices) || q.choices.length !== 3) {
+      throw new Error('選択肢が3つではありません');
+    }
     const ai = Number(q.answerIndex);
-    if (ai < 0 || ai > 3) throw Error('正解番号が不正です');
+    if (!Number.isInteger(ai) || ai < 0 || ai > 2) {
+      throw new Error('正解番号が不正です');
+    }
     return {
-      question: String(q.question),
-      choices: q.choices.map(String),
+      question: String(q.question || '').trim(),
+      choices: q.choices.map(c => String(c || '').trim()),
       answerIndex: ai,
-      explanation: String(q.explanation)
+      explanation: String(q.explanation || '').trim()
     };
   });
 }
 
-async function prepareQuiz() {
+function startQuizPrefetch(text) {
   const myToken = ++S.quizGenToken;
+  const entry = {
+    token: myToken,
+    text: text,
+    promise: null
+  };
+  entry.promise = geminiQuiz(text, myToken);
+  entry.promise.catch(() => {});
+  S.quizPrefetch = entry;
+  return entry;
+}
+
+async function prepareQuiz(forceRestart = false) {
   S.q = 0;
   S.score = 0;
   S.answered = false;
@@ -860,7 +914,13 @@ async function prepareQuiz() {
   const errBox = $('#apiErrorBox');
   errBox.style.display = 'none';
   errBox.innerHTML = '';
-  // 問題作成中でも常にスキップボタンを表示する
+
+  const text = currentText();
+  let entry = (!forceRestart && S.quizPrefetch && S.quizPrefetch.text === text)
+    ? S.quizPrefetch
+    : startQuizPrefetch(text);
+  const myToken = entry.token;
+
   $('#skipQuiz').style.display = 'inline-block';
   $('#qProgress').textContent = '生成中...';
   $('#scoreNow').textContent = '';
@@ -869,7 +929,7 @@ async function prepareQuiz() {
   $('#feedback').style.display = 'none';
   $('#nextQ').style.display = 'none';
   try {
-    const qs = await geminiQuiz(currentText(), myToken);
+    const qs = await entry.promise;
     if (myToken !== S.quizGenToken || S.quizSkipped) return;
     S.questions = qs;
     renderQ();
@@ -890,7 +950,7 @@ async function prepareQuiz() {
       </div>
     `;
     errBox.style.display = 'block';
-    $('#retryQuiz').onclick = () => prepareQuiz();
+    $('#retryQuiz').onclick = () => prepareQuiz(true);
     $('#skipFromErr').onclick = () => skipQuiz();
     $('#backToSetup').onclick = () => {
       cancelPendingQuiz();
@@ -901,6 +961,7 @@ async function prepareQuiz() {
 
 function cancelPendingQuiz() {
   S.quizGenToken++;
+  S.quizPrefetch = null;
   if (S.activeAbortCtrl) {
     try { S.activeAbortCtrl.abort(); } catch {}
     S.activeAbortCtrl = null;
@@ -921,7 +982,7 @@ function renderQ() {
   q.choices.forEach((c, i) => {
     const b = document.createElement('button');
     b.className = 'choice';
-    b.innerHTML = `<span>${'ABCD'[i]}</span><span></span>`;
+    b.innerHTML = `<span>${'ABC'[i]}</span><span></span>`;
     b.lastChild.textContent = c;
     b.onclick = () => answer(i);
     box.append(b);
@@ -946,7 +1007,7 @@ function answer(i) {
   });
   $('#scoreNow').textContent = `${S.score} correct`;
   $('#feedback').style.display = 'block';
-  $('#feedback').textContent = (i === q.answerIndex ? '正解です。 ' : '正解は ' + ('ABCD'[q.answerIndex]) + '。 ') + q.explanation;
+  $('#feedback').textContent = (i === q.answerIndex ? '正解です。 ' : '正解は ' + ('ABC'[q.answerIndex]) + '。 ') + q.explanation;
   $('#nextQ').style.display = 'block';
   $('#nextQ').textContent = S.q < S.questions.length - 1 ? '次の問題へ' : '結果を見る';
 }
@@ -964,9 +1025,8 @@ function getDateKeys(isoStr) {
   const dayKey = `${y}-${m}-${day}`;
   const monthKey = `${y}-${m}`;
 
-  // 月曜始まりの週キー（その週の月曜日の YYYY-MM-DD）
   const localMidnight = new Date(y, d.getMonth(), d.getDate());
-  const dow = (localMidnight.getDay() + 6) % 7; // Mon=0 ... Sun=6
+  const dow = (localMidnight.getDay() + 6) % 7;
   localMidnight.setDate(localMidnight.getDate() - dow);
   const weekKey = `${localMidnight.getFullYear()}-${pad2(localMidnight.getMonth() + 1)}-${pad2(localMidnight.getDate())}`;
 
@@ -1041,7 +1101,6 @@ function loadAggStats() {
 
   if (!agg || typeof agg !== 'object' || !agg.byDay) {
     agg = defaultAggStats();
-    // 既存の履歴があれば初回移行
     const existing = history();
     existing.slice().reverse().forEach(rec => applyRecordToAgg(agg, rec));
     saveAggStats(agg);
@@ -1059,7 +1118,7 @@ function finish(quizMode = 'scored') {
   $('#skipQuiz').style.display = 'none';
   const isNoQuiz = quizMode === 'none';
   const isSkipped = quizMode === 'skipped' || S.quizSkipped;
-  const totalQ = isNoQuiz ? 0 : (S.questions.length || 3);
+  const totalQ = isNoQuiz ? 0 : (S.questions.length || 2);
   const scoreDisplay = isNoQuiz ? 'なし' : isSkipped ? 'スキップ' : `${S.score} / ${totalQ}`;
 
   const rec = {
@@ -1075,12 +1134,10 @@ function finish(quizMode = 'scored') {
     preview: currentText().slice(0, 70)
   };
 
-  // 1) 独立した永続累計統計（100件超過後も消えない）へ加算
   const agg = loadAggStats();
   applyRecordToAgg(agg, rec);
   saveAggStats(agg);
 
-  // 2) 詳細履歴リスト（直近100件）を更新
   const h = history();
   h.unshift(rec);
   try {
@@ -1176,11 +1233,9 @@ function renderStats() {
   $('#totalWords').textContent = targetWords.toLocaleString();
   $('#avgScore').textContent = avgScore;
 
-  // 日別・週別・月別の推移リスト描画
   const bBox = $('#breakdownBox');
   const bList = $('#breakdownList');
   if (p === 'all') {
-    // 全期間選択時は「今日 / 今週 / 今月」の比較サマリーを表示
     bBox.style.display = 'block';
     $('#breakdownHeading').textContent = '期間別平均WPMサマリー（100件超でも永続保持）';
     const dB = agg.byDay[nowKeys.dayKey] || emptyBucket();
@@ -1314,11 +1369,9 @@ async function testApiConnection() {
       })
     }, 15000);
     if (!r.ok) {
-      let d = {};
-      try { d = await r.json(); } catch {}
-      const msg = (d && d.error && d.error.message) ? d.error.message : `HTTP ${r.status}`;
+      const errMsg = await extractGeminiErrorMessage(r, `接続エラー (${model})`);
       out.style.color = 'var(--bad)';
-      out.textContent = `接続エラー (${model}): ${msg}`;
+      out.textContent = errMsg;
     } else {
       out.style.color = 'var(--ok)';
       out.textContent = `接続成功！(${model} で問題生成が可能です)`;
@@ -1354,7 +1407,7 @@ $('#clear').onclick = () => { $('#passage').value = ''; analyze(); };
 $('#resetChunks').onclick = analyze;
 $('#start').onclick = start;
 $('#stage').onclick = advance;
-$('#abort').onclick = () => { clearInterval(S.timer); show('#setup'); };
+$('#abort').onclick = () => { clearInterval(S.timer); cancelPendingQuiz(); show('#setup'); };
 $('#skipQuiz').onclick = skipQuiz;
 $('#nextQ').onclick = () => {
   if (S.q < S.questions.length - 1) {
@@ -1435,7 +1488,6 @@ try {
   } else {
     setQuizEnabled(true, false);
   }
-  // 既存履歴があれば累計統計ストレージへ自動同期
   loadAggStats();
 } catch {}
 
